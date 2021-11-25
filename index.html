@@ -6,17 +6,22 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pesel</title>
-
+    <link rel="stylesheet" href="main.css">
 </head>
 
 <body>
-    <div>
+    <div id="inputs_container">
+        <input id="year-input" type="number" maxlength="4" placeholder="ROK">
+        <input id="month-input" type="number" maxlength="2" placeholder="MIESIĄC">
+        <input id="day-input" type="number" maxlength="2" placeholder="DZIEŃ">
+        <input id="last-digits-input" type="number" maxlength="5" placeholder="OSTATNIE5CYFR">
+    </div>
+    <div id="btn_container">
         <button id="firstBtn">FIRST</button>
         <button id="secondBtn">SECOND</button>
         <button id="thirdBtn">THIRD</button>
     </div>
-    <script type="text/javascript" src="index.js"></script>
-    <script type="text/javascript" src="find_valid_pesels.js"></script>
 </body>
+<script type="text/javascript" src="index.js"></script>
 
 </html>
