@@ -10,7 +10,7 @@ const inputs = [yearInput, monthInput, dayInput, lastDigitsInput];
 
 let pesel = '';
 
-const firstWorker = new Worker('find_valid_pesels.js');
+const firstWorker = new Worker('validate_one_pesel.js');
 
 
 inputs.forEach((input) => {
@@ -25,6 +25,7 @@ inputs.forEach((input) => {
 firstBtn.addEventListener('click', () => {
     pesel = getPeselValue();
     weightPesel();
+    firstWorker.postMessage('validate');
 });
 
 function getPeselValue() {
@@ -69,7 +70,7 @@ function handleSum(peselSum) {
 function handlePesel(reminder) {
     const result = reminder === parseInt(pesel.charAt(pesel.length - 1));
 
-    message = result ? 'Pesel poprawny' : 'Pesel niepoprawny';
+    message = result ? `Pesel ${pesel} jest poprawny` : `Pesel ${pesel} jest niepoprawny`;
 
     alert(message);
 }
