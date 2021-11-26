@@ -4,13 +4,23 @@ const firstBtn = document.getElementById("firstBtn"),
     yearInput = document.getElementById("year-input"),
     monthInput = document.getElementById("month-input"),
     dayInput = document.getElementById("day-input"),
-    lastDigitsInput = document.getElementById("last-digits-input");
+    lastDigitsInput = document.getElementById("last-digits-input"),
+    peselResults = document.createElement('div');
+
 
 const inputs = [yearInput, monthInput, dayInput, lastDigitsInput];
 
-let pesel = '';
+let firstWorker = new Worker('validate_one_pesel.js'),
+    secondWorker = new Worker('show_all_pesels.js'),
+    thirdWorker = new Worker('find_valid_pesels.js');
 
-const firstWorker = new Worker('validate_one_pesel.js');
+firstWorker.addEventListener('message', function(e) {
+    alert(e.data);
+});
+
+secondWorker.addEventListener('message', (e) => {
+    showAllPesels(e.data);
+});
 
 
 inputs.forEach((input) => {
@@ -23,54 +33,82 @@ inputs.forEach((input) => {
 });
 
 firstBtn.addEventListener('click', () => {
-    pesel = getPeselValue();
-    weightPesel();
-    firstWorker.postMessage('validate');
+    firstWorker.postMessage(getPeselValue());
 });
+
+secondBtn.addEventListener('click', () => {
+    secondWorker.postMessage(getDatePart());
+})
 
 function getPeselValue() {
     const yearValue = yearInput.value.slice(2, 4),
-        monthValue = monthInput.value.length === 1 ? ('0').concat(monthInput.value) : monthInput.value,
+        yearModifer = getYearInputModifier(yearInput.value),
+        monthValue = getMonthValue(monthInput.value, yearModifer),
         dayValue = dayInput.value.length === 1 ? ('0').concat(dayInput.value) : dayInput.value,
         lastDigits = lastDigitsInput.value;
     return yearValue.concat(monthValue, dayValue, lastDigits);
 }
 
-function weightPesel() {
-    let peselVals = pesel.split('').map(Number);
-    peselVals.splice(peselVals.length - 1, 1);
-
-    peselVals[0] = parseInt(peselVals[0]) * 1;
-    peselVals[1] = parseInt(peselVals[1]) * 3;
-    peselVals[2] = parseInt(peselVals[2]) * 7;
-    peselVals[3] = parseInt(peselVals[3]) * 9;
-    peselVals[4] = parseInt(peselVals[4]) * 1;
-    peselVals[5] = parseInt(peselVals[5]) * 3;
-    peselVals[6] = parseInt(peselVals[6]) * 7;
-    peselVals[7] = parseInt(peselVals[7]) * 9;
-    peselVals[8] = parseInt(peselVals[8]) * 1;
-    peselVals[9] = parseInt(peselVals[9]) * 3;
-
-
-    const peselValSum = sumVals(peselVals);
-
-    handlePesel(handleSum(peselValSum));
+function getYearInputModifier(yearInputValue) {
+    let modifier = 0;
+    switch (true) {
+        case (yearInputValue >= 1800 && yearInputValue < 1900):
+            modifier = 80;
+            break;
+        case (yearInputValue >= 1900 && yearInputValue < 2000):
+            modifier = 0;
+            break;
+        case (yearInputValue >= 2000 && yearInputValue < 2100):
+            modifier = 20;
+            break;
+        case (yearInputValue >= 2100 && yearInputValue < 2200):
+            modifier = 40;
+            break;
+        case (yearInputValue >= 2200 && yearInputValue < 2300):
+            modifier = 60;
+            break;
+    }
+    return modifier;
 }
 
-function sumVals(peselVals) {
-    return peselVals.reduce((a, b) => { return parseInt(a) + parseInt(b) });
+function getMonthValue(monthInputValue, yearModifer) {
+    let monthValue = '';
+
+    if (monthInputValue.length === 1) {
+        monthValue = ('0').concat((parseInt(monthInput.value) + yearModifer).toString());
+    } else if (monthInputValue.length === 2) {
+        monthValue = monthInputValue[0] === '0' ?
+            ('0').concat(parseInt(monthInput.value) + yearModifer).toString() :
+            (parseInt(monthInput.value) + yearModifer).toString()
+    }
+
+    return monthValue;
 }
 
-function handleSum(peselSum) {
-    const reminder = 10 - peselSum % 10;
+function getDatePart() {
+    const yearValue = yearInput.value.slice(2, 4),
+        yearModifer = getYearInputModifier(yearInput.value),
+        monthValue = getMonthValue(monthInput.value, yearModifer),
+        dayValue = dayInput.value.length === 1 ? ('0').concat(dayInput.value) : dayInput.value;
 
-    return reminder === 10 ? 0 : reminder;
+    return yearValue.concat(monthValue, dayValue);
 }
 
-function handlePesel(reminder) {
-    const result = reminder === parseInt(pesel.charAt(pesel.length - 1));
+function showAllPesels(validPesels) {
+    peselResults.innerHTML = '';
 
-    message = result ? `Pesel ${pesel} jest poprawny` : `Pesel ${pesel} jest niepoprawny`;
+    const validPeselsContainer = document.createElement('div'),
+        numberOfPeselsContainer = document.createElement('div');
+    validPeselsContainer.id = 'validPeselsContainer';
+    numberOfPeselsContainer.innerText = `Jest ${validPesels.length} poprawnych numerów PESEL dla podanej daty:`;
 
-    alert(message);
+    peselResults.append(numberOfPeselsContainer);
+    validPesels.forEach((pesel) => {
+        let peselDiv = document.createElement('div');
+        peselDiv.innerText = pesel;
+
+        validPeselsContainer.append(peselDiv);
+    });
+    peselResults.append(validPeselsContainer);
+    document.body.append(peselResults);
 }
