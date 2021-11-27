@@ -1,6 +1,7 @@
 const firstBtn = document.getElementById("firstBtn"),
     secondBtn = document.getElementById("secondBtn"),
     thirdBtn = document.getElementById("thirdBtn"),
+    clearBtn = document.getElementById("clearBtn"),
     yearInput = document.getElementById("year-input"),
     monthInput = document.getElementById("month-input"),
     dayInput = document.getElementById("day-input"),
@@ -14,13 +15,18 @@ let firstWorker = new Worker('validate_one_pesel.js'),
     secondWorker = new Worker('show_all_pesels.js'),
     thirdWorker = new Worker('find_valid_pesels.js');
 
-firstWorker.addEventListener('message', function(e) {
-    alert(e.data);
+firstWorker.addEventListener('message', (e) => {
+    let message = e.data.valid ? `Pesel ${e.data.pesel} jest poprawny` : `Pesel ${e.data.pesel} jest niepoprawny`;
+    alert(message);
 });
 
 secondWorker.addEventListener('message', (e) => {
     showAllPesels(e.data);
 });
+
+thirdWorker.addEventListener('message', (e) => {
+    showAllPesels(e.data, false);
+})
 
 
 inputs.forEach((input) => {
@@ -33,21 +39,30 @@ inputs.forEach((input) => {
 });
 
 firstBtn.addEventListener('click', () => {
-    firstWorker.postMessage(getPeselValue());
+    if (isInputFull()) {
+        firstWorker.postMessage(getPeselValue());
+    } else {
+        alert('Nie podano pełnych danych');
+    }
 });
 
 secondBtn.addEventListener('click', () => {
-    secondWorker.postMessage(getDatePart());
-})
+    if (isDatePartFull()) {
+        secondWorker.postMessage(getDatePart());
+    } else {
+        alert('Nie podano pełnych danych');
+    }
+});
 
-function getPeselValue() {
-    const yearValue = yearInput.value.slice(2, 4),
-        yearModifer = getYearInputModifier(yearInput.value),
-        monthValue = getMonthValue(monthInput.value, yearModifer),
-        dayValue = dayInput.value.length === 1 ? ('0').concat(dayInput.value) : dayInput.value,
-        lastDigits = lastDigitsInput.value;
-    return yearValue.concat(monthValue, dayValue, lastDigits);
-}
+thirdBtn.addEventListener('click', () => {
+    if (isLastDigitsPartFull()) {
+        thirdWorker.postMessage(getLastDigitsPart());
+    } else {
+        alert('Nie podano pełnych danych');
+    }
+});
+
+clearBtn.addEventListener('click', () => clearData());
 
 function getYearInputModifier(yearInputValue) {
     let modifier = 0;
@@ -75,11 +90,45 @@ function getMonthValue(monthInputValue, yearModifer) {
     let monthValue = '';
 
     if (monthInputValue.length === 1) {
-        monthValue = ('0').concat((parseInt(monthInput.value) + yearModifer).toString());
+        monthValue = ('0').concat((parseInt(monthInputValue) + yearModifer).toString());
     } else if (monthInputValue.length === 2) {
-        monthValue = monthInputValue[0] === '0' ?
-            ('0').concat(parseInt(monthInput.value) + yearModifer).toString() :
-            (parseInt(monthInput.value) + yearModifer).toString()
+        monthValue = (parseInt(monthInputValue) + yearModifer).toString().length === 1 ?
+            ('0').concat(parseInt(monthInputValue) + yearModifer).toString() :
+            (parseInt(monthInputValue) + yearModifer).toString();
+    }
+
+    return monthValue;
+}
+
+
+function clearData() {
+    yearInput.value = '';
+    monthInput.value = '';
+    dayInput.value = '';
+    lastDigitsInput.value = '';
+    peselResults.innerHTML = '';
+}
+
+function getPeselValue() {
+    const yearValue = yearInput.value.slice(2, 4),
+        yearModifer = getYearInputModifier(yearInput.value),
+        monthValue = getMonthValue(monthInput.value, yearModifer),
+        dayValue = dayInput.value.length === 1 ? ('0').concat(dayInput.value) : dayInput.value,
+        lastDigits = lastDigitsInput.value,
+        pesel = yearValue.concat(monthValue, dayValue, lastDigits);
+
+    return { pesel };
+}
+
+function getMonthValue(monthInputValue, yearModifer) {
+    let monthValue = '';
+
+    if (monthInputValue.length === 1) {
+        monthValue = ('0').concat((parseInt(monthInputValue) + yearModifer).toString());
+    } else if (monthInputValue.length === 2) {
+        monthValue = (parseInt(monthInputValue) + yearModifer).toString().length === 1 ?
+            ('0').concat(parseInt(monthInputValue) + yearModifer).toString() :
+            (parseInt(monthInputValue) + yearModifer).toString();
     }
 
     return monthValue;
@@ -94,13 +143,13 @@ function getDatePart() {
     return yearValue.concat(monthValue, dayValue);
 }
 
-function showAllPesels(validPesels) {
+function showAllPesels(validPesels, fromDate = true) {
     peselResults.innerHTML = '';
 
     const validPeselsContainer = document.createElement('div'),
         numberOfPeselsContainer = document.createElement('div');
     validPeselsContainer.id = 'validPeselsContainer';
-    numberOfPeselsContainer.innerText = `Jest ${validPesels.length} poprawnych numerów PESEL dla podanej daty:`;
+    numberOfPeselsContainer.innerText = `Jest ${validPesels.length} poprawnych numerów PESEL ${fromDate ? 'dla podanej daty:' : 'dla 5 ostatnich cyfr'}`;
 
     peselResults.append(numberOfPeselsContainer);
     validPesels.forEach((pesel) => {
@@ -111,4 +160,20 @@ function showAllPesels(validPesels) {
     });
     peselResults.append(validPeselsContainer);
     document.body.append(peselResults);
+}
+
+function getLastDigitsPart() {
+    return lastDigitsInput.value;
+}
+
+function isInputFull() {
+    return yearInput.value.length === 4 && monthInput.value.length === 2 && dayInput.value.length === 2 && lastDigitsInput.value.length === 5;
+}
+
+function isDatePartFull() {
+    return yearInput.value.length === 4 && monthInput.value.length === 2 && dayInput.value.length === 2
+}
+
+function isLastDigitsPartFull() {
+    return lastDigitsInput.value.length === 5;
 }

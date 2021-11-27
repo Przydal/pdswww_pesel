@@ -1,5 +1,5 @@
 this.addEventListener('message', function(e) {
-    const pesel = e.data;
+    const pesel = e.data.pesel;
 
     validatePesel(pesel);
 });
@@ -20,7 +20,6 @@ function validatePesel(pesel) {
     peselVals[9] *= 3;
 
     const peselValSum = sumVals(peselVals);
-
     handleReminder(handleSum(peselValSum), pesel);
 }
 
@@ -37,7 +36,5 @@ function handleSum(peselSum) {
 function handleReminder(reminder, pesel) {
     const result = reminder === parseInt(pesel.charAt(pesel.length - 1));
 
-    message = result ? `Pesel ${pesel} jest poprawny` : `Pesel ${pesel} jest niepoprawny`;
-
-    this.postMessage(message);
+    this.postMessage({ pesel, valid: result });
 }
